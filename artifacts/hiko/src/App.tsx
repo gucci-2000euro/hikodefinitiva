@@ -17,6 +17,8 @@ import Social from "@/pages/social";
 import SocialNew from "@/pages/social-new";
 import Friends from "@/pages/friends";
 import Profile from "@/pages/profile";
+import Messages from "@/pages/messages";
+import Chat from "@/pages/chat";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/social" component={Social} />
       <Route path="/social/new" component={SocialNew} />
       <Route path="/social/friends" component={Friends} />
+      <Route path="/messages" component={Messages} />
+      <Route path="/messages/:userId" component={Chat} />
       <Route path="/profile" component={Profile} />
       <Route path="/run/:routeId" component={RunSession} />
       <Route component={NotFound} />

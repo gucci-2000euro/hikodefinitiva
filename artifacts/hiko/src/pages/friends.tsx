@@ -1,17 +1,27 @@
 import { useState } from 'react';
 import { useFriendsStore } from '@/store/useFriendsStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { ArrowLeft, UserPlus, Check, X } from 'lucide-react';
-import { Link } from 'wouter';
+import { useMessagesStore } from '@/store/useMessagesStore';
+import { ArrowLeft, UserPlus, Check, X, MessageSquare } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
 
 export default function Friends() {
   const { friends, acceptRequest, rejectRequest, sendRequest } = useFriendsStore();
-  const requireAuth = useAuthStore(state => state.requireAuth);
+  const requireAuth = useAuthStore(s => s.requireAuth);
+  const [, setLocation] = useLocation();
+  const { startConversation } = useMessagesStore();
   const [tab, setTab] = useState<'my' | 'requests' | 'suggested'>('my');
 
   const gateAccept = (id: string) => requireAuth('Sign in to accept friend requests.', () => acceptRequest(id));
   const gateReject = (id: string) => requireAuth('Sign in to manage friend requests.', () => rejectRequest(id));
   const gateAdd = (id: string) => requireAuth('Sign in to add friends.', () => sendRequest(id));
+
+  const handleMessage = (friend: typeof friends[0]) => {
+    requireAuth('Sign in to message other runners.', () => {
+      startConversation({ id: friend.id, name: friend.name, avatar: friend.avatar });
+      setLocation(`/messages/${friend.id}`);
+    });
+  };
 
   const getFiltered = () => {
     switch (tab) {
@@ -69,17 +79,26 @@ export default function Friends() {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
+                {friend.status === 'friend' && (
+                  <button
+                    onClick={() => handleMessage(friend)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-hiko-primary/10 hover:bg-hiko-primary/20 transition-colors text-sm font-medium text-hiko-primary"
+                    data-testid={`msg-${friend.id}`}
+                  >
+                    <MessageSquare size={15} /> Message
+                  </button>
+                )}
                 {friend.status === 'request' && (
                   <>
-                    <button 
+                    <button
                       onClick={() => gateAccept(friend.id)}
                       className="w-10 h-10 rounded-full bg-hiko-primary flex items-center justify-center text-hiko-deep hover:bg-hiko-primary/90 transition-colors"
                     >
                       <Check size={20} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => gateReject(friend.id)}
                       className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
                     >
@@ -88,7 +107,7 @@ export default function Friends() {
                   </>
                 )}
                 {friend.status === 'suggested' && (
-                  <button 
+                  <button
                     onClick={() => gateAdd(friend.id)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium"
                   >
