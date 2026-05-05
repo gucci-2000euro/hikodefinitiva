@@ -9,24 +9,32 @@ export default function Chat() {
   const { userId } = useParams<{ userId: string }>();
   const [, setLocation] = useLocation();
   const user = useAuthStore(s => s.user);
-  const { getConversation, getMessages, sendMessage, markRead, startConversation } = useMessagesStore();
+
+  // Subscribe reactively so new messages re-render the component
+  const conversations = useMessagesStore(s => s.conversations);
+  const allMessages = useMessagesStore(s => s.messages);
+  const sendMessage = useMessagesStore(s => s.sendMessage);
+  const markRead = useMessagesStore(s => s.markRead);
+
+  const conv = conversations.find(c => c.participantId === (userId ?? ''));
+  const messages = allMessages.filter(m => m.conversationId === (conv?.id ?? ''));
 
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const conv = getConversation(userId ?? '');
-  const messages = conv ? getMessages(conv.id) : [];
-
+  // Auth guard — only depends on user
   useEffect(() => {
-    if (!user) { setLocation('/messages'); return; }
-    if (userId && !conv) {
-      // Start a conversation if not yet existing (friend tapped message)
-      // Conv will be created by startConversation before navigation
-    }
-    if (conv) markRead(conv.id);
-  }, [user, conv, userId, setLocation, markRead]);
+    if (!user) setLocation('/messages');
+  }, [user, setLocation]);
 
+  // Mark conversation read when its ID is first seen — conv.id is a stable string
+  // so this effect only fires when navigating to a different conversation, not on every update
+  const convId = conv?.id;
+  useEffect(() => {
+    if (convId) markRead(convId);
+  }, [convId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll to bottom when new messages arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
@@ -43,7 +51,9 @@ export default function Chat() {
   // Group messages by date
   type GroupedMessages = { date: string; msgs: typeof messages }[];
   const grouped = messages.reduce<GroupedMessages>((acc, msg) => {
-    const date = new Date(msg.timestamp).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+    const date = new Date(msg.timestamp).toLocaleDateString([], {
+      weekday: 'long', month: 'short', day: 'numeric'
+    });
     const last = acc[acc.length - 1];
     if (last && last.date === date) { last.msgs.push(msg); }
     else { acc.push({ date, msgs: [msg] }); }
@@ -60,7 +70,11 @@ export default function Chat() {
         >
           <ArrowLeft size={18} />
         </button>
-        <img src={conv.participantAvatar} alt={conv.participantName} className="w-9 h-9 rounded-full object-cover border border-white/10" />
+        <img
+          src={conv.participantAvatar}
+          alt={conv.participantName}
+          className="w-9 h-9 rounded-full object-cover border border-white/10"
+        />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm">{conv.participantName}</p>
           <p className="text-[11px] text-hiko-primary">Active recently</p>
@@ -71,11 +85,13 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
         {grouped.map(group => (
           <div key={group.date}>
             <div className="flex items-center justify-center my-4">
-              <span className="text-[11px] text-white/30 bg-white/5 px-3 py-1 rounded-full">{group.date}</span>
+              <span className="text-[11px] text-white/30 bg-white/5 px-3 py-1 rounded-full">
+                {group.date}
+              </span>
             </div>
             <div className="space-y-1">
               {group.msgs.map((msg, idx) => {
@@ -91,12 +107,16 @@ export default function Chat() {
                     className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
                   >
                     {!isMine && isLast ? (
-                      <img src={msg.senderAvatar} alt={msg.senderName} className="w-6 h-6 rounded-full object-cover border border-white/10 flex-shrink-0 mb-1" />
+                      <img
+                        src={msg.senderAvatar}
+                        alt={msg.senderName}
+                        className="w-6 h-6 rounded-full object-cover border border-white/10 flex-shrink-0 mb-1"
+                      />
                     ) : !isMine ? (
                       <div className="w-6 flex-shrink-0" />
                     ) : null}
 
-                    <div className={`max-w-[72%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
+                    <div className={`max-w-[72%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                       {isFirst && !isMine && (
                         <span className="text-[10px] text-white/40 ml-3 mb-1">{msg.senderName}</span>
                       )}
@@ -129,7 +149,6 @@ export default function Chat() {
       <div className="flex-shrink-0 px-4 py-3 border-t border-white/10 flex items-center gap-3 bg-hiko-deep">
         <div className="flex-1 flex items-center bg-white/5 rounded-2xl border border-white/10 px-4 py-2.5 gap-2 focus-within:border-hiko-primary/40 transition-colors">
           <input
-            ref={inputRef}
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
@@ -145,7 +164,6 @@ export default function Chat() {
               exit={{ scale: 0 }}
               onClick={handleSend}
               className="w-10 h-10 bg-hiko-primary rounded-full flex items-center justify-center text-hiko-deep shadow-lg flex-shrink-0"
-              data-testid="send-button"
             >
               <Send size={17} />
             </motion.button>
