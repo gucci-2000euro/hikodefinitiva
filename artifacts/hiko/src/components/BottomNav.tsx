@@ -16,7 +16,7 @@ export function BottomNav() {
     { href: "/profile", icon: ProfileIcon, label: "Profile" },
   ];
 
-  if (location === "/auth" || location.startsWith("/run/")) return null;
+  if (location === "/auth" || location.startsWith("/run/") || location.startsWith("/messages/")) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 pointer-events-none">
