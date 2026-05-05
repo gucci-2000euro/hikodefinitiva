@@ -47,14 +47,14 @@ export const useAuthStore = create<AuthState>()(
             avatar: 'https://i.pravatar.cc/150?u=u1',
             level: 12,
             title: 'Pathfinder',
-            totalKm: 428.5,
-            totalRuns: 64,
-            longestRun: 21.1,
-            currentStreak: 5,
-            weeklyAvg: 24.5,
-            avgPace: 330,        // 5:30 min/km in seconds
-            weeklyCalories: 1470,
-            totalCalories: 25710
+            totalKm: 0,
+            totalRuns: 0,
+            longestRun: 0,
+            currentStreak: 0,
+            weeklyAvg: 0,
+            avgPace: 0,
+            weeklyCalories: 0,
+            totalCalories: 0
           },
           authModalOpen: false,
           authModalReason: null
