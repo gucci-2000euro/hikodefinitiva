@@ -1,3 +1,16 @@
+// ─── Run ─────────────────────────────────────────────────────────
+export interface Run {
+  id: string;
+  user_id: string;
+  route_id: string | null;
+  distanza_km: number;
+  durata_sec: number;
+  pace_medio: number; // secondi/km
+  waypoints: { lat: number; lng: number }[] | null;
+  completata: boolean;
+  created_at: string;
+}
+
 // ─── Community core ──────────────────────────────────────────────
 export interface Community {
   id: string;

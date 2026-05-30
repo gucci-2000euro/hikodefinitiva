@@ -4,6 +4,9 @@ import { Settings, LogOut, Award, Activity, Calendar, Flame, Timer, TrendingUp, 
 import { useLocation } from 'wouter';
 import { Logo } from '@/components/Logo';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { useRuns } from '@/hooks/useRuns';
+import { RunHistoryChart } from '@/components/stats/RunHistoryChart';
+import { PaceChart } from '@/components/stats/PaceChart';
 
 function formatPace(seconds: number) {
   if (!seconds) return '0:00';
@@ -21,6 +24,7 @@ export default function Profile() {
   const { user, logout, openAuthModal, updateProfile } = useAuthStore();
   const [, setLocation] = useLocation();
   const avatarUpload = useImageUpload('avatars');
+  const { data: runs = [] } = useRuns();
 
   const handleLogout = () => {
     logout();
@@ -181,12 +185,51 @@ export default function Profile() {
           <p className="text-sm text-white/40 text-center py-6">No badges yet — complete challenges to earn them.</p>
         </div>
 
+        {/* Charts */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <TrendingUp size={20} className="text-hiko-primary" /> Stats
+          </h3>
+          <RunHistoryChart
+            runs={runs.map(r => ({ id: r.id, distance: r.distanza_km, date: r.created_at }))}
+          />
+          <PaceChart
+            runs={runs.map(r => ({ id: r.id, currentPace: r.pace_medio, date: r.created_at }))}
+          />
+        </div>
+
         {/* Recent Activities */}
-        {/* TODO [BE]: esporre storico corse — GET /api/runs?userId=&limit=5 (già presente via saveRun)
-            TODO [FE2]: usare useRuns hook (TanStack Query) e mappare qui le ultime corse */}
         <div>
-          <h3 className="text-lg font-bold mb-4">Recent Activities</h3>
-          <p className="text-sm text-white/40 text-center py-6">No runs recorded yet.</p>
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Activity size={20} className="text-hiko-primary" /> Recent Activities
+          </h3>
+          {runs.length === 0 ? (
+            <p className="text-sm text-white/40 text-center py-6">No runs recorded yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {runs.slice(0, 5).map(run => {
+                const m = Math.floor(run.durata_sec / 60);
+                const s = run.durata_sec % 60;
+                const pace = run.pace_medio
+                  ? `${Math.floor(run.pace_medio / 60)}:${String(run.pace_medio % 60).padStart(2, '0')}`
+                  : '--:--';
+                return (
+                  <div key={run.id} className="glass-panel rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-sm">{run.distanza_km.toFixed(2)} km</p>
+                      <p className="text-xs text-white/50">
+                        {new Date(run.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{m}:{String(s).padStart(2, '0')}</p>
+                      <p className="text-xs text-white/50">{pace} /km</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

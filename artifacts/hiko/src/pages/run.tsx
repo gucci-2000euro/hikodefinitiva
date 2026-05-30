@@ -3,9 +3,10 @@ import { useLocation, useParams } from 'wouter';
 import { useRunStore } from '@/store/useRunStore';
 import { useDataStore, Route } from '@/store/useDataStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSaveRun } from '@/hooks/useRuns';
 import MapView from '@/components/MapView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, FastForward, Activity, Navigation, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Trophy, FastForward, Activity, Navigation, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { bearing, distanceM, generateLoop, nearestWaypointIndex, fmtDist, bearingLabel } from '@/lib/geo';
 
 const USER_START: [number, number] = [41.3851, 2.1734];
@@ -39,12 +40,14 @@ export default function RunSession() {
   const { isTracking, elapsedTime, distance, currentPace, startRun, endRun, tick, updateMetrics } = useRunStore();
   const user = useAuthStore(s => s.user);
   const openAuthModal = useAuthStore(s => s.openAuthModal);
+  const saveRun = useSaveRun();
 
   const [route, setRoute] = useState<Route | null>(null);
   const [runWaypoints, setRunWaypoints] = useState<[number, number][]>([]);
   const [userPos, setUserPos] = useState<[number, number]>(USER_START);
   const [nextWpIdx, setNextWpIdx] = useState(1);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const posRef = useRef<[number, number]>(USER_START);
   const nextWpRef = useRef(1);
@@ -311,9 +314,22 @@ export default function RunSession() {
               </div>
 
               <button
-                onClick={() => { endRun(); setLocation('/'); }}
-                className="w-full bg-hiko-primary text-hiko-deep font-bold py-4 rounded-xl hover:bg-hiko-primary/90 transition-colors relative z-10"
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  await saveRun({
+                    distanza_km: Math.round(distance * 1000) / 1000,
+                    durata_sec: elapsedTime,
+                    pace_medio: Math.round(currentPace),
+                    route_id: route?.id ?? null,
+                  });
+                  setSaving(false);
+                  endRun();
+                  setLocation('/');
+                }}
+                className="w-full bg-hiko-primary text-hiko-deep font-bold py-4 rounded-xl hover:bg-hiko-primary/90 transition-colors relative z-10 flex items-center justify-center gap-2 disabled:opacity-70"
               >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : null}
                 Save &amp; Continue
               </button>
             </motion.div>
