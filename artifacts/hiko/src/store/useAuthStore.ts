@@ -53,10 +53,16 @@ function buildUser(id: string, email: string, name: string): User {
 }
 
 async function fetchProfile(id: string, email: string, fallbackName: string): Promise<User> {
-  const { data } = await supabase.from('profiles').select('nome, avatar_url').eq('id', id).maybeSingle();
+  const { data } = await supabase
+    .from('profiles')
+    .select('nome, avatar_url, km_totali, corse_totali')
+    .eq('id', id)
+    .maybeSingle();
   return {
     ...buildUser(id, email, data?.nome ?? fallbackName),
     avatar: data?.avatar_url ?? '',
+    totalKm: Number(data?.km_totali ?? 0),
+    totalRuns: Number(data?.corse_totali ?? 0),
   };
 }
 

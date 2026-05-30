@@ -32,9 +32,10 @@ export function useSaveRun() {
     pace_medio: number;
     route_id?: string | null;
     waypoints?: { lat: number; lng: number }[];
-  }) => {
-    if (!user) return null;
-    const { data, error } = await supabase.from('runs').insert({
+  }): Promise<{ ok: boolean; error: string | null }> => {
+    if (!user) return { ok: false, error: 'Utente non autenticato' };
+
+    const { error } = await supabase.from('runs').insert({
       user_id: user.id,
       route_id: run.route_id ?? null,
       distanza_km: run.distanza_km,
@@ -42,16 +43,18 @@ export function useSaveRun() {
       pace_medio: run.pace_medio,
       waypoints: run.waypoints ?? null,
       completata: true,
-    }).select().single();
+    });
 
-    if (!error) {
-      // aggiorna stats locali ottimisticamente (il trigger aggiorna anche il DB)
-      updateProfile({
-        totalKm: (user.totalKm ?? 0) + run.distanza_km,
-        totalRuns: (user.totalRuns ?? 0) + 1,
-      });
-      queryClient.invalidateQueries({ queryKey: ['runs', user.id] });
+    if (error) {
+      console.error('[useSaveRun] INSERT error:', error);
+      return { ok: false, error: error.message };
     }
-    return error ? null : data as Run;
+
+    updateProfile({
+      totalKm: (user.totalKm ?? 0) + run.distanza_km,
+      totalRuns: (user.totalRuns ?? 0) + 1,
+    });
+    queryClient.invalidateQueries({ queryKey: ['runs', user.id] });
+    return { ok: true, error: null };
   };
 }
