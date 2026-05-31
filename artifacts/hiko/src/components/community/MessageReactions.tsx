@@ -53,35 +53,43 @@ export function MessageReactions({ messageId, isOwn }: Props) {
         </div>
       )}
 
-      {/* Quick emoji + picker — visibili al hover su desktop, sempre su mobile */}
-      <div className={`
-        flex items-center gap-1
-        opacity-0 group-hover:opacity-100 focus-within:opacity-100
-        sm:opacity-0 max-sm:opacity-100
-        transition-opacity
-        ${isOwn ? 'flex-row-reverse' : ''}
-      `}>
-        {QUICK_EMOJIS.map(emoji => (
-          <button
-            key={emoji}
-            onClick={() => handleEmoji(emoji)}
-            aria-label={`Reagisci con ${emoji}`}
-            className={`text-base hover:scale-125 active:scale-110 transition-transform leading-none ${
-              reactions[emoji]?.hasReacted ? 'opacity-100' : 'opacity-60 hover:opacity-100'
-            }`}
-          >
-            {emoji}
-          </button>
-        ))}
+      {/* Barra emoji: su desktop al hover, su mobile apre direttamente il picker */}
+      <div className={`flex items-center gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+        {/* Quick emoji — solo su desktop al hover */}
+        <div className={`
+          hidden sm:flex items-center gap-1
+          opacity-0 group-hover:opacity-100 focus-within:opacity-100
+          transition-opacity
+          ${isOwn ? 'flex-row-reverse' : ''}
+        `}>
+          {QUICK_EMOJIS.map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => handleEmoji(emoji)}
+              aria-label={`Reagisci con ${emoji}`}
+              className={`text-base hover:scale-125 active:scale-110 transition-transform leading-none ${
+                reactions[emoji]?.hasReacted ? 'opacity-100' : 'opacity-50 hover:opacity-100'
+              }`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
 
-        {/* Pulsante picker esteso */}
+        {/* Pulsante picker — sempre visibile (piccolo), apre popover con tutte le emoji */}
         <Popover.Root open={pickerOpen} onOpenChange={setPickerOpen}>
           <Popover.Trigger asChild>
             <button
-              aria-label="Apri emoji picker"
-              className="w-6 h-6 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white text-xs transition-colors"
+              aria-label="Aggiungi reazione"
+              className="
+                opacity-0 group-hover:opacity-100 focus:opacity-100
+                sm:opacity-0 sm:group-hover:opacity-100
+                w-6 h-6 flex items-center justify-center rounded-full
+                bg-white/10 hover:bg-white/20 active:bg-white/30
+                text-white/50 hover:text-white text-xs transition-all
+              "
             >
-              ···
+              😊
             </button>
           </Popover.Trigger>
           <Popover.Portal>
@@ -90,6 +98,22 @@ export function MessageReactions({ messageId, isOwn }: Props) {
               sideOffset={6}
               className="z-50 bg-hiko-deep border border-white/15 rounded-2xl p-3 shadow-2xl"
             >
+              {/* Quick emoji nel picker */}
+              <div className="flex gap-1 mb-2 pb-2 border-b border-white/10">
+                {QUICK_EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleEmoji(emoji)}
+                    aria-label={`Reagisci con ${emoji}`}
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl text-lg hover:bg-white/10 active:scale-90 transition-all ${
+                      reactions[emoji]?.hasReacted ? 'bg-hiko-primary/30 ring-1 ring-hiko-primary' : ''
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              {/* Picker esteso */}
               <div className="grid grid-cols-8 gap-1">
                 {PICKER_EMOJIS.map(emoji => (
                   <button

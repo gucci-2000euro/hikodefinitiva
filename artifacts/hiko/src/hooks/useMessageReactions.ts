@@ -56,16 +56,27 @@ export function useMessageReactions(messageId: string) {
 
   const addReaction = async (emoji: string) => {
     if (!user) return;
-    await supabase.from('community_reactions').insert({ message_id: messageId, user_id: user.id, emoji });
+    // aggiornamento ottimistico
+    const optimistic: CommunityReaction = { message_id: messageId, user_id: user.id, emoji, created_at: new Date().toISOString() };
+    setRaw(prev => prev.some(x => x.user_id === user.id && x.emoji === emoji) ? prev : [...prev, optimistic]);
+    const { error } = await supabase.from('community_reactions').insert({ message_id: messageId, user_id: user.id, emoji });
+    if (error) setRaw(prev => prev.filter(x => !(x.user_id === user.id && x.emoji === emoji)));
   };
 
   const removeReaction = async (emoji: string) => {
     if (!user) return;
-    await supabase.from('community_reactions')
+    // aggiornamento ottimistico
+    setRaw(prev => prev.filter(x => !(x.user_id === user.id && x.emoji === emoji)));
+    const { error } = await supabase.from('community_reactions')
       .delete()
       .eq('message_id', messageId)
       .eq('user_id', user.id)
       .eq('emoji', emoji);
+    if (error) {
+      // rollback
+      const rollback: CommunityReaction = { message_id: messageId, user_id: user.id, emoji, created_at: new Date().toISOString() };
+      setRaw(prev => [...prev, rollback]);
+    }
   };
 
   const toggleReaction = async (emoji: string) => {
