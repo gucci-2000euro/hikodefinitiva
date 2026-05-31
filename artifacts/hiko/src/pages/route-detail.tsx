@@ -3,7 +3,6 @@ import { useRoutes } from '@/hooks/useRoutes';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ArrowLeft, Play, Activity, Mountain, Clock, ChevronRight } from 'lucide-react';
 import MapView from '@/components/MapView';
-import { MapStyleButton } from '@/components/MapStyleButton';
 import { useMapIsDark, mapPanel } from '@/store/useMapStore';
 
 export default function RouteDetail() {
@@ -27,7 +26,6 @@ export default function RouteDetail() {
         >
           <ArrowLeft size={24} />
         </button>
-        <MapStyleButton isDark={isDark} className="absolute top-12 right-4 z-20" />
         <div className="absolute inset-0 z-0">
           <MapView 
             center={route.center} 

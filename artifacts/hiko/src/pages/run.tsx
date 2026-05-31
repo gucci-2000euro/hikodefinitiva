@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useSaveRun } from '@/hooks/useRuns';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import MapView from '@/components/MapView';
-import { MapStyleButton } from '@/components/MapStyleButton';
 import { useMapIsDark, mapPanel } from '@/store/useMapStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -189,7 +188,6 @@ export default function RunSession() {
               <Loader2 size={13} className="animate-spin" /> Acquisizione GPS…
             </div>
           )}
-          <MapStyleButton isDark={isDark} />
         </div>
 
         {/* Card percorso + START */}
@@ -250,7 +248,6 @@ export default function RunSession() {
             <div className="w-2 h-2 rounded-full bg-hiko-primary animate-pulse" />
             <span className="text-sm font-bold text-hiko-primary tracking-wider">LIVE</span>
           </div>
-          <MapStyleButton isDark={isDark} />
         </div>
       </div>
 
@@ -305,7 +302,7 @@ export default function RunSession() {
             initial={{ opacity: 0, y: -20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: -20, x: '-50%' }}
-            className="absolute top-52 left-1/2 z-20 glass-panel px-5 py-2.5 rounded-2xl flex items-center gap-3"
+            className={`absolute top-52 left-1/2 z-20 ${mapPanel(isDark)} px-5 py-2.5 rounded-2xl flex items-center gap-3`}
           >
             <Activity size={16} className="text-hiko-primary" />
             <span className="text-sm font-medium">{toastMessage}</span>
@@ -323,13 +320,13 @@ export default function RunSession() {
           <p className="text-hiko-primary font-medium tracking-widest uppercase text-sm">Tempo</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="glass-panel rounded-2xl p-4 flex flex-col items-center">
+          <div className={`${mapPanel(isDark)} rounded-2xl p-4 flex flex-col items-center`}>
             <p className="text-3xl font-bold mb-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {distance.toFixed(2)}
             </p>
             <p className="text-xs text-white/50 uppercase tracking-wider">Chilometri</p>
           </div>
-          <div className="glass-panel rounded-2xl p-4 flex flex-col items-center">
+          <div className={`${mapPanel(isDark)} rounded-2xl p-4 flex flex-col items-center`}>
             <p className="text-3xl font-bold mb-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {formatPace(currentPace)}
             </p>
@@ -347,7 +344,7 @@ export default function RunSession() {
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-sm glass-panel border border-white/10 rounded-3xl p-8 relative overflow-hidden"
+              className={`w-full max-w-sm ${mapPanel(isDark)} rounded-3xl p-8 relative overflow-hidden`}
             >
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-hiko-primary/20 blur-[50px] rounded-full" />
               <div className="text-center mb-8 relative z-10">

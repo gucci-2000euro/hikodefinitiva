@@ -164,7 +164,7 @@ export default function Home() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: 'spring', damping: 22, stiffness: 180 }}
-            className="absolute bottom-28 left-4 right-4 z-40 glass-panel rounded-2xl p-4"
+            className={`absolute bottom-28 left-4 right-4 z-40 ${mapPanel(isDark)} rounded-2xl p-4`}
           >
             <button
               onClick={handleDenyLocation}
@@ -232,7 +232,7 @@ export default function Home() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute bottom-0 left-0 right-0 z-30 glass-panel rounded-t-3xl p-6 pb-24"
+              className={`absolute bottom-0 left-0 right-0 z-30 ${mapPanel(isDark)} rounded-t-3xl p-6 pb-24`}
             >
               <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
               

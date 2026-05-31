@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { useMapStore, MAP_STYLES, mapPanel } from '@/store/useMapStore';
 
@@ -10,32 +10,48 @@ interface Props {
 export function MapStyleButton({ isDark, className = '' }: Props) {
   const { styleId, setStyleId } = useMapStore();
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Chiude il popup cliccando fuori — non usa un backdrop full-screen
+  // che coprirebbe altri controlli (es. il tasto back)
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [open]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${className}`}>
+      {/* Popup apre VERSO IL BASSO (top-full) per evitare overflow in alto */}
       {open && (
-        <>
-          {/* Backdrop per chiudere */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          {/* Popup stili */}
-          <div className={`absolute bottom-12 right-0 z-50 ${mapPanel(isDark)} rounded-2xl p-1.5 min-w-[140px] flex flex-col gap-0.5`}>
-            {MAP_STYLES.map(style => (
-              <button
-                key={style.id}
-                onClick={() => { setStyleId(style.id); setOpen(false); }}
-                aria-label={`Stile mappa: ${style.name}`}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left w-full ${
-                  styleId === style.id
-                    ? 'bg-hiko-primary text-hiko-deep'
-                    : 'text-white hover:bg-white/10'
-                }`}
-              >
-                <span className="text-base leading-none">{style.emoji}</span>
-                <span>{style.name}</span>
-              </button>
-            ))}
-          </div>
-        </>
+        <div
+          className={`absolute top-full mt-1 right-0 z-50 ${mapPanel(isDark)} rounded-2xl p-1.5 w-36 flex flex-col gap-0.5`}
+        >
+          {MAP_STYLES.map(style => (
+            <button
+              key={style.id}
+              onClick={() => { setStyleId(style.id); setOpen(false); }}
+              aria-label={`Stile mappa: ${style.name}`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left w-full ${
+                styleId === style.id
+                  ? 'bg-hiko-primary text-hiko-deep'
+                  : 'text-white hover:bg-white/10'
+              }`}
+            >
+              <span className="text-base">{style.emoji}</span>
+              <span className="truncate">{style.name}</span>
+            </button>
+          ))}
+        </div>
       )}
 
       <button
