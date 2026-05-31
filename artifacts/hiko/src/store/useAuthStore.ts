@@ -53,16 +53,20 @@ function buildUser(id: string, email: string, name: string): User {
 }
 
 async function fetchProfile(id: string, email: string, fallbackName: string): Promise<User> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('nome, avatar_url, km_totali, corse_totali')
-    .eq('id', id)
-    .maybeSingle();
+  const [{ data }, { data: streak }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('nome, avatar_url, km_totali, corse_totali, streak_corrente')
+      .eq('id', id)
+      .maybeSingle(),
+    supabase.rpc('update_streak', { uid: id }),
+  ]);
   return {
     ...buildUser(id, email, data?.nome ?? fallbackName),
     avatar: data?.avatar_url ?? '',
     totalKm: Number(data?.km_totali ?? 0),
     totalRuns: Number(data?.corse_totali ?? 0),
+    currentStreak: typeof streak === 'number' ? streak : Number(data?.streak_corrente ?? 0),
   };
 }
 

@@ -2,11 +2,13 @@ import { Link, useLocation } from "wouter";
 import { Home, Map as MapIcon, Trophy, Users, User as ProfileIcon } from "lucide-react";
 import { useMessagesStore } from "@/store/useMessagesStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useMapIsDark, mapPanel } from "@/store/useMapStore";
 
 export function BottomNav() {
   const [location] = useLocation();
   const user = useAuthStore(s => s.user);
   const totalUnread = useMessagesStore(s => s.totalUnread());
+  const isDark = useMapIsDark();
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -20,7 +22,7 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 pointer-events-none">
-      <div className="glass-panel mx-auto max-w-md rounded-2xl flex justify-between items-center px-6 py-3 pointer-events-auto">
+      <div className={`${mapPanel(isDark)} mx-auto max-w-md rounded-2xl flex justify-between items-center px-6 py-3 pointer-events-auto`}>
         {navItems.map(({ href, icon: Icon, label, badge }) => {
           const isActive = location === href || (href !== "/" && location.startsWith(href));
           return (
