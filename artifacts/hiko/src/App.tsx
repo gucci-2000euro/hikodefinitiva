@@ -47,7 +47,6 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/run/:routeId" component={RunSession} />
-      <Route path="/community" component={CommunityList} />
       <Route path="/community/create" component={CreateCommunity} />
       <Route path="/community/:id/admin" component={CommunityAdmin} />
       <Route path="/community/:id/channel/:channelId" component={ChannelView} />

@@ -168,7 +168,7 @@ export default function CommunityHub() {
     <div className="flex flex-col h-screen bg-hiko-deep">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-hiko-deep/90 backdrop-blur-md">
-        <button onClick={() => setLocation('/community')} className="text-white/60 hover:text-white">
+        <button onClick={() => setLocation('/social')} className="text-white/60 hover:text-white">
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
