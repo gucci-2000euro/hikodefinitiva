@@ -123,7 +123,7 @@ export function MessageComposer({ channelId, onSend, onRemove, disabled, readOnl
 
   return (
     <div className="px-4 py-3 border-t border-white/10">
-      {/* Violazione bloccante */}
+      {/* Violazione bloccante — mostra tipo standard + ragione specifica della categoria */}
       {blocked && (
         <div
           role="alert"
@@ -131,10 +131,13 @@ export function MessageComposer({ channelId, onSend, onRemove, disabled, readOnl
           className="flex items-start gap-2 mb-2 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2"
         >
           <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <p className="text-xs text-red-400">Messaggio non consentito</p>
+          <div>
+            <p className="text-xs font-semibold text-red-400">Messaggio non consentito</p>
+            <p className="text-xs text-red-300 mt-0.5">{blocked}</p>
+          </div>
         </div>
       )}
-      {/* Warning */}
+      {/* Warning — flagged: invio consentito, AI valuta in background */}
       {flagged && !blocked && (
         <div
           role="status"
@@ -142,7 +145,10 @@ export function MessageComposer({ channelId, onSend, onRemove, disabled, readOnl
           className="flex items-start gap-2 mb-2 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-3 py-2"
         >
           <Info size={14} className="text-yellow-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <p className="text-xs text-yellow-300">Controlla il tono del messaggio</p>
+          <div>
+            <p className="text-xs font-semibold text-yellow-400">Controlla il tono del messaggio</p>
+            <p className="text-xs text-yellow-300 mt-0.5">{flagged}</p>
+          </div>
         </div>
       )}
       <div className="flex items-end gap-2">
