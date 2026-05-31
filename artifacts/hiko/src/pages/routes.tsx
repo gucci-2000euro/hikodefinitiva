@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useDataStore } from '@/store/useDataStore';
+import { useRoutes } from '@/hooks/useRoutes';
 import { Link } from 'wouter';
-import { MapIcon, ArrowRight, Activity, Mountain, Users } from 'lucide-react';
+import { MapIcon, Activity, Mountain, Users, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function RoutesList() {
-  const { routes } = useDataStore();
+  const { data: routes = [], isLoading } = useRoutes();
   const [filter, setFilter] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
 
   const filteredRoutes = routes.filter(r => filter === 'all' || r.difficulty === filter);
@@ -32,6 +32,11 @@ export default function RoutesList() {
       </div>
 
       <div className="p-6 space-y-4">
+        {isLoading && (
+          <div className="flex justify-center py-16">
+            <Loader2 size={32} className="text-hiko-primary animate-spin" />
+          </div>
+        )}
         {filteredRoutes.map((route, i) => (
           <Link key={route.id} href={`/routes/${route.id}`}>
             <motion.div

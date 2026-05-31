@@ -1,5 +1,5 @@
 import { useLocation, useParams } from 'wouter';
-import { useDataStore } from '@/store/useDataStore';
+import { useRoutes } from '@/hooks/useRoutes';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ArrowLeft, Play, Activity, Mountain, Clock, ChevronRight } from 'lucide-react';
 import MapView from '@/components/MapView';
@@ -7,9 +7,9 @@ import MapView from '@/components/MapView';
 export default function RouteDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { routes } = useDataStore();
+  const { data: routes = [] } = useRoutes();
   const requireAuth = useAuthStore(state => state.requireAuth);
-  
+
   const route = routes.find(r => r.id === id);
 
   if (!route) return <div className="text-white p-6">Route not found</div>;

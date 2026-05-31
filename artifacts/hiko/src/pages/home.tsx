@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDataStore, Route } from '@/store/useDataStore';
+import { useRoutes } from '@/hooks/useRoutes';
 import MapView from '@/components/MapView';
 import UserLocationMarker from '@/components/UserLocationMarker';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -17,7 +18,8 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const user = useAuthStore(state => state.user);
   const requireAuth = useAuthStore(state => state.requireAuth);
-  const { routes, runners } = useDataStore();
+  const { runners } = useDataStore();
+  const { data: routes = [] } = useRoutes();
   
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [locationConsent, setLocationConsent] = useState<'granted' | 'denied' | null>(null);
