@@ -104,7 +104,11 @@ export default function Profile() {
           <Logo size={36} />
         </div>
         <div className="absolute top-6 right-6 flex gap-3">
-          <button className="p-2 glass-panel rounded-full hover:bg-white/20 transition-colors">
+          <button
+            onClick={() => setLocation('/settings')}
+            aria-label="Apri impostazioni"
+            className="p-2 glass-panel rounded-full hover:bg-white/20 transition-colors"
+          >
             <Settings size={20} />
           </button>
           <button onClick={handleLogout} className="p-2 glass-panel rounded-full hover:bg-red-500/20 text-red-400 transition-colors" data-testid="button-logout">

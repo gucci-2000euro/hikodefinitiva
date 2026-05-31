@@ -27,6 +27,7 @@ import CommunityHub from "@/pages/community/[id]";
 import ChannelView from "@/pages/community/channel";
 import CreateCommunity from "@/pages/community/create";
 import CommunityAdmin from "@/pages/community/admin";
+import SettingsPage from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/messages" component={Messages} />
       <Route path="/messages/:userId" component={Chat} />
       <Route path="/profile" component={Profile} />
+      <Route path="/settings" component={SettingsPage} />
       <Route path="/run/:routeId" component={RunSession} />
       <Route path="/community/create" component={CreateCommunity} />
       <Route path="/community/:id/admin" component={CommunityAdmin} />
