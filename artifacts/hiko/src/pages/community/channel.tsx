@@ -86,10 +86,6 @@ export default function ChannelView() {
                 message={msg}
                 currentUserId={user?.id ?? ''}
                 isFirstInGroup={isFirstInGroup}
-                onReact={async (emoji) => {
-                  if (!user) return;
-                  await supabase.from('community_reactions').upsert({ message_id: msg.id, user_id: user.id, emoji });
-                }}
                 onReport={() => {}}
                 onReply={() => {}}
               />

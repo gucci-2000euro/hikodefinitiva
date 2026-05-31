@@ -222,10 +222,6 @@ export default function CommunityHub() {
                     currentUserId={user?.id ?? ''}
                     isFirstInGroup={isFirstInGroup}
                     isAdmin={isAdmin}
-                    onReact={async (emoji) => {
-                      if (!user) return;
-                      await supabase.from('community_reactions').upsert({ message_id: msg.id, user_id: user.id, emoji });
-                    }}
                     onReport={() => {
                       supabase.from('moderation_queue').upsert({ message_id: msg.id, segnalazioni_count: 1 });
                     }}
