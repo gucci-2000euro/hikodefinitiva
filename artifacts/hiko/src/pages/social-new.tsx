@@ -3,7 +3,8 @@ import { useLocation } from 'wouter';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, ImagePlus, X, Loader2 } from 'lucide-react';
+import { checkBlacklist, checkCompletedWords } from '@/lib/moderation';
+import { ArrowLeft, ImagePlus, X, Loader2, AlertTriangle, Info } from 'lucide-react';
 
 export default function SocialNew() {
   const [, setLocation] = useLocation();
@@ -14,6 +15,9 @@ export default function SocialNew() {
   const [caption, setCaption] = useState('');
   const [publishing, setPublishing] = useState(false);
 
+  const captionViolation = caption ? checkCompletedWords(caption) : null;
+  const captionBlocked = captionViolation?.decision === 'blocked';
+
   useEffect(() => {
     if (!user) {
       openAuthModal('Sign in to share your run.', () => {});
@@ -23,6 +27,8 @@ export default function SocialNew() {
 
   const handlePublish = async () => {
     if (!user || !caption.trim()) return;
+    const violation = checkBlacklist(caption);
+    if (violation?.decision === 'blocked') return;
     setPublishing(true);
     const { error } = await supabase.from('posts').insert({
       user_id: user.id,
@@ -44,7 +50,7 @@ export default function SocialNew() {
         </div>
         <button
           onClick={handlePublish}
-          disabled={!caption.trim() || publishing}
+          disabled={!caption.trim() || publishing || captionBlocked}
           className="text-hiko-primary font-bold disabled:opacity-50 transition-opacity flex items-center gap-1.5"
         >
           {publishing ? <Loader2 size={16} className="animate-spin" /> : null}
@@ -95,7 +101,11 @@ export default function SocialNew() {
           </button>
         )}
 
-        <div className="glass-panel rounded-2xl p-4">
+        <div className={`glass-panel rounded-2xl p-4 border ${
+          captionViolation?.decision === 'blocked' ? 'border-red-500/50' :
+          captionViolation?.decision === 'flagged' ? 'border-yellow-500/50' :
+          'border-transparent'
+        }`}>
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
@@ -103,6 +113,18 @@ export default function SocialNew() {
             className="w-full bg-transparent border-none resize-none focus:outline-none text-white placeholder:text-white/40 h-32"
           />
         </div>
+        {captionViolation?.decision === 'blocked' && (
+          <div className="flex items-start gap-2 mt-2 px-1">
+            <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-400">{captionViolation.reason}</p>
+          </div>
+        )}
+        {captionViolation?.decision === 'flagged' && (
+          <div className="flex items-start gap-2 mt-2 px-1">
+            <Info size={14} className="text-yellow-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-yellow-300">{captionViolation.reason}</p>
+          </div>
+        )}
       </div>
     </div>
   );

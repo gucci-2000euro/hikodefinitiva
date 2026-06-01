@@ -1,7 +1,7 @@
 import type { ModerationResult } from '@/types/index';
 import blacklistData from './hiko_blacklist.json';
 
-type BlacklistEntry = { term: string; category: string; action: 'block' | 'flag' };
+type BlacklistEntry = { term: string; category: string; action: 'block' | 'flag'; reason?: string };
 type BlacklistFile = {
   terms: BlacklistEntry[];
   leet_map: Record<string, string>;
@@ -66,9 +66,11 @@ export function checkBlacklist(text: string): ModerationResult | null {
           if (levenshtein(chunk, normalizedTerm) <= 2) { matched = true; break; }
         }
       } else {
+        // Soglia 1 (una sola modifica) per parole singole: evita falsi positivi
+        // su parole comuni corte (es. "vero" ≠ "negro", "sera" ≠ "negra")
         for (const word of words) {
-          if (Math.abs(word.length - normalizedTerm.length) <= 2 &&
-              levenshtein(word, normalizedTerm) <= 2) { matched = true; break; }
+          if (Math.abs(word.length - normalizedTerm.length) <= 1 &&
+              levenshtein(word, normalizedTerm) <= 1) { matched = true; break; }
         }
       }
     }
@@ -166,13 +168,13 @@ function buildResult(entry: BlacklistEntry): ModerationResult {
     BODY:      'Commenti negativi sul corpo altrui non sono benvenuti.',
     ELITISM:   'Hiko è una community aperta a tutti i livelli. Rispettiamo ogni runner.',
     SEXUAL:    'Contenuti o avances sessuali non sono consentiti.',
-    DRUG:      'Riferimenti a sostanze illegali non sono permessi.',
+    DRUG:      'Riferimenti offensivi a sostanze non sono permessi.',
     SPAM:      'Contenuto ripetitivo o spam non è permesso.',
   };
   return {
     decision,
     confidence: 1.0,
-    reason: categoryMessages[entry.category] ?? 'Contenuto non consentito.',
+    reason: entry.reason ?? categoryMessages[entry.category] ?? 'Contenuto non consentito.',
     category: entry.category as ModerationResult['category'],
   };
 }

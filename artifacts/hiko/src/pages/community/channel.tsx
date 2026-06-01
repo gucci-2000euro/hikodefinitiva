@@ -37,6 +37,11 @@ export default function ChannelView() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
+  const handleDeleteMessage = async (messageId: string) => {
+    await supabase.from('community_messages').update({ eliminato: true }).eq('id', messageId);
+    useCommunityStore.getState().removeMessage(messageId);
+  };
+
   const handleSend = async (partial: Partial<{ channel_id: string; contenuto: string }>): Promise<string | null> => {
     if (!user) {
       requireAuth('Accedi per scrivere nella community', () => {});
@@ -88,6 +93,7 @@ export default function ChannelView() {
                 isFirstInGroup={isFirstInGroup}
                 onReport={() => {}}
                 onReply={() => {}}
+                onDelete={() => handleDeleteMessage(msg.id)}
               />
             </div>
           );

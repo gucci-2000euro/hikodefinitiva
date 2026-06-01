@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CommunityMessageWithProfile } from '@/types/index';
-import { Flag, Reply, Trash2, MapPin, Trophy, Activity } from 'lucide-react';
+import { Flag, Reply, Trash2, MapPin, Trophy, Activity, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { MessageReactions } from './MessageReactions';
@@ -41,7 +41,6 @@ export function MessageBubble({
   return (
     <div
       className={`group flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
-      onContextMenu={(e) => { e.preventDefault(); setShowMenu(true); }}
     >
       {/* Avatar o spacer */}
       {isFirstInGroup
@@ -81,40 +80,45 @@ export function MessageBubble({
           )}
         </div>
 
-        {/* Timestamp */}
-        {isFirstInGroup && (
-          <span className="text-[10px] text-white/30 px-1">
-            {format(new Date(message.created_at), 'HH:mm', { locale: it })}
-          </span>
-        )}
+        {/* Timestamp + tasto ... per propri messaggi */}
+        <div className={`flex items-center gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+          {isFirstInGroup && (
+            <span className="text-[10px] text-white/30 px-1">
+              {format(new Date(message.created_at), 'HH:mm', { locale: it })}
+            </span>
+          )}
+          {(isOwn || isAdmin) && onDelete && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(v => !v)}
+                className="p-0.5 text-white/30 hover:text-white/70 transition-colors rounded"
+              >
+                <MoreHorizontal size={14} />
+              </button>
+              {showMenu && (
+                <div
+                  className={`absolute bottom-6 z-30 bg-hiko-deep border border-white/10 rounded-xl shadow-xl overflow-hidden ${isOwn ? 'right-0' : 'left-0'}`}
+                  style={{ minWidth: 120 }}
+                >
+                  <button
+                    onClick={() => { onDelete(); setShowMenu(false); }}
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-400/10 w-full whitespace-nowrap"
+                  >
+                    <Trash2 size={13} /> Elimina
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Reazioni */}
         <MessageReactions messageId={message.id} isOwn={isOwn} />
       </div>
 
-      {/* Context menu */}
+      {/* Overlay per chiudere il dropdown cliccando fuori */}
       {showMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setShowMenu(false)}>
-          <div
-            className="absolute bg-hiko-deep border border-white/10 rounded-xl p-1 shadow-xl z-50"
-            style={{ top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <button onClick={() => { onReply(); setShowMenu(false); }} className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10 rounded-lg w-full">
-              <Reply size={14} /> Rispondi
-            </button>
-            {!isOwn && (
-              <button onClick={() => { onReport(); setShowMenu(false); }} className="flex items-center gap-2 px-3 py-2 text-sm text-white/60 hover:bg-white/10 rounded-lg w-full">
-                <Flag size={14} /> Segnala
-              </button>
-            )}
-            {(isOwn || isAdmin) && onDelete && (
-              <button onClick={() => { onDelete(); setShowMenu(false); }} className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 rounded-lg w-full">
-                <Trash2 size={14} /> Elimina
-              </button>
-            )}
-          </div>
-        </div>
+        <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
       )}
     </div>
   );

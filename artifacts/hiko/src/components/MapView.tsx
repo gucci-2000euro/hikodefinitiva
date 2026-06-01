@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Route } from "@/store/useDataStore";
 import { useMapStore, getMapStyle } from "@/store/useMapStore";
@@ -53,17 +53,19 @@ const runnerIcon = createDotIcon("rgba(255,255,255,0.85)", 13);
 interface MapViewProps {
   center: [number, number];
   zoom?: number;
+  flyTrigger?: number;
   routes?: Route[];
   runners?: { id: string; lat: number; lng: number }[];
   activeRoute?: Route | null;
   userPos?: [number, number];
   onRouteClick?: (route: Route) => void;
+  onViewChange?: (center: [number, number], zoom: number) => void;
   interactive?: boolean;
   showRouteEndpoints?: boolean;
   children?: React.ReactNode;
 }
 
-function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number }) {
+function MapUpdater({ center, zoom, flyTrigger }: { center: [number, number]; zoom?: number; flyTrigger?: number }) {
   const map = useMap();
   useEffect(() => {
     if (zoom) {
@@ -71,7 +73,19 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number 
     } else {
       map.panTo(center, { animate: true, duration: 1 });
     }
-  }, [center, zoom, map]);
+    // flyTrigger è nelle dipendenze per forzare il re-esecuzione anche quando center/zoom non cambiano
+  }, [center, zoom, flyTrigger, map]);  // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+function MapPositionTracker({ onViewChange }: { onViewChange: (center: [number, number], zoom: number) => void }) {
+  useMapEvents({
+    moveend(e) {
+      const c = e.target.getCenter();
+      const z = e.target.getZoom();
+      onViewChange([c.lat, c.lng], z);
+    },
+  });
   return null;
 }
 
@@ -87,11 +101,13 @@ function UserMarker({ pos }: { pos: [number, number] }) {
 export default function MapView({
   center,
   zoom = 14,
+  flyTrigger,
   routes = [],
   runners = [],
   activeRoute,
   userPos,
   onRouteClick,
+  onViewChange,
   interactive = true,
   showRouteEndpoints = false,
   children,
@@ -118,7 +134,8 @@ export default function MapView({
         attribution={style.attribution}
       />
 
-      <MapUpdater center={center} zoom={zoom} />
+      <MapUpdater center={center} zoom={zoom} flyTrigger={flyTrigger} />
+      {onViewChange && <MapPositionTracker onViewChange={onViewChange} />}
 
       {/* Browse-mode route pins */}
       {!activeRoute && routes.map(route => (

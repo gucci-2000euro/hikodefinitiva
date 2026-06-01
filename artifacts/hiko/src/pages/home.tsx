@@ -14,7 +14,13 @@ import { useMapIsDark, mapPanel } from '@/store/useMapStore';
 
 const LOCATION_PREF_KEY = 'hiko_location_consent';
 
-const BARCELONA_CENTER: [number, number] = [41.3851, 2.1734];
+// Europa dall'alto — vista iniziale prima del fix GPS
+const EUROPE_CENTER: [number, number] = [54.0, 13.0];
+
+// Sopravvive ai remount di Home, si resetta solo al reload della pagina.
+// Null = prima apertura assoluta → mostra Europa → zoom su GPS.
+// Valorizzato = ripristina esattamente la vista lasciata dall'utente.
+let savedView: { center: [number, number]; zoom: number } | null = null;
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -81,8 +87,24 @@ export default function Home() {
       setShowLocationPrompt(true);
     }
   }, [geoError]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>(BARCELONA_CENTER);
-  const [mapZoom, setMapZoom] = useState(14);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(
+    () => savedView?.center ?? EUROPE_CENTER
+  );
+  const [mapZoom, setMapZoom] = useState<number>(
+    () => savedView?.zoom ?? 4
+  );
+  // Incrementato ogni volta che vogliamo forzare un flyTo anche se center/zoom non cambiano
+  const [flyTrigger, setFlyTrigger] = useState(0);
+
+  // Prima apertura assoluta (savedView null) → vola su GPS al primo fix
+  useEffect(() => {
+    if (geoPos && !savedView) {
+      setMapCenter(geoPos);
+      setMapZoom(15);
+      setFlyTrigger(t => t + 1);
+    }
+  }, [geoPos]);
+
   // TODO [FE1]: runners arriveranno da Supabase Realtime (posizioni GPS live degli utenti attivi)
 
   const handleRouteClick = (route: Route) => {
@@ -93,8 +115,18 @@ export default function Home() {
 
   const handleCenterUser = () => {
     setSelectedRoute(null);
-    setMapCenter(geoPos ?? BARCELONA_CENTER);
-    setMapZoom(14);
+    if (geoPos) {
+      setMapCenter(geoPos);
+      setMapZoom(15);
+    } else {
+      setMapCenter(EUROPE_CENTER);
+      setMapZoom(4);
+    }
+    setFlyTrigger(t => t + 1);
+  };
+
+  const handleViewChange = (center: [number, number], zoom: number) => {
+    savedView = { center, zoom };
   };
 
   const handleStartRun = () => {
@@ -111,9 +143,11 @@ export default function Home() {
         <MapView
           center={mapCenter}
           zoom={mapZoom}
+          flyTrigger={flyTrigger}
           routes={routes}
           runners={runners}
           onRouteClick={handleRouteClick}
+          onViewChange={handleViewChange}
         >
           <UserLocationMarker pos={geoPos} />
         </MapView>

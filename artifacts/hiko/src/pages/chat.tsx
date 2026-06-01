@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useMessagesStore, formatMessageTime } from '@/store/useMessagesStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { ArrowLeft, Send, Phone } from 'lucide-react';
+import { ArrowLeft, Send, Phone, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Chat() {
@@ -14,12 +14,14 @@ export default function Chat() {
   const conversations = useMessagesStore(s => s.conversations);
   const allMessages = useMessagesStore(s => s.messages);
   const sendMessage = useMessagesStore(s => s.sendMessage);
+  const deleteMessage = useMessagesStore(s => s.deleteMessage);
   const markRead = useMessagesStore(s => s.markRead);
 
   const conv = conversations.find(c => c.participantId === (userId ?? ''));
   const messages = allMessages.filter(m => m.conversationId === (conv?.id ?? ''));
 
   const [text, setText] = useState('');
+  const [activeMsg, setActiveMsg] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auth guard — only depends on user
@@ -85,7 +87,7 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0" onClick={() => setActiveMsg(null)}>
         {grouped.map(group => (
           <div key={group.date}>
             <div className="flex items-center justify-center my-4">
@@ -99,6 +101,7 @@ export default function Chat() {
                 const isFirst = idx === 0 || group.msgs[idx - 1].senderId !== msg.senderId;
                 const isLast = idx === group.msgs.length - 1 || group.msgs[idx + 1].senderId !== msg.senderId;
 
+                const isActive = activeMsg === msg.id;
                 return (
                   <motion.div
                     key={msg.id}
@@ -121,7 +124,8 @@ export default function Chat() {
                         <span className="text-[10px] text-white/40 ml-3 mb-1">{msg.senderName}</span>
                       )}
                       <div
-                        className={`px-3.5 py-2.5 text-sm leading-relaxed ${
+                        onClick={() => isMine && setActiveMsg(isActive ? null : msg.id)}
+                        className={`px-3.5 py-2.5 text-sm leading-relaxed ${isMine ? 'cursor-pointer' : ''} ${
                           isMine
                             ? 'bg-hiko-primary text-hiko-deep font-medium rounded-2xl rounded-br-sm'
                             : 'bg-white/10 text-white rounded-2xl rounded-bl-sm'
@@ -135,6 +139,19 @@ export default function Chat() {
                           {isMine && !msg.read && ' · Sent'}
                         </span>
                       )}
+                      <AnimatePresence>
+                        {isMine && isActive && (
+                          <motion.button
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            onClick={() => { deleteMessage(msg.id); setActiveMsg(null); }}
+                            className="flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 mt-1 mr-1"
+                          >
+                            <Trash2 size={11} /> Elimina
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.div>
                 );

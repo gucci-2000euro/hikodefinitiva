@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -10,9 +10,11 @@ import { ChannelList } from '@/components/community/ChannelList';
 import { MessageBubble } from '@/components/community/MessageBubble';
 import { MessageComposer } from '@/components/community/MessageComposer';
 import { LeaderboardWidget } from '@/components/community/LeaderboardWidget';
-import type { Community, CommunityChannel, LeaderboardEntry } from '@/types/index';
+import { PercorsiChannelView } from '@/components/community/PercorsiChannelView';
+import { SfideChannelView } from '@/components/community/SfideChannelView';
+import type { Community, CommunityChannel, CommunityMessageWithProfile, LeaderboardEntry } from '@/types/index';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Settings, Loader2, UserPlus, Clock, LogOut } from 'lucide-react';
+import { ArrowLeft, Settings, Loader2, UserPlus, Clock, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function CommunityHub() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +26,8 @@ export default function CommunityHub() {
   const [joinRequested, setJoinRequested] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { messages, activeChannel, setActiveCommunity, setActiveChannel } = useCommunityStore();
   const { isMember, role } = useCommunityMembership(id ?? null, user?.id ?? null);
 
@@ -55,6 +59,10 @@ export default function CommunityHub() {
   });
 
   useCommunityMessages(activeChannel?.id ?? null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+  }, [messages.length]);
 
   useEffect(() => {
     if (community) setActiveCommunity(community);
@@ -128,7 +136,7 @@ export default function CommunityHub() {
     setConfirmLeave(false);
   };
 
-  const handleSend = async (partial: Partial<{ channel_id: string; contenuto: string; tipo: string }>): Promise<string | null> => {
+  const handleSend = async (partial: Partial<{ channel_id: string; contenuto: string; tipo: string; riferimento_id?: string | null }>): Promise<string | null> => {
     if (!user) {
       requireAuth('Accedi per scrivere nella community', () => {});
       return null;
@@ -140,9 +148,10 @@ export default function CommunityHub() {
       user_id: user.id,
       contenuto: partial.contenuto,
       tipo: partial.tipo ?? 'testo',
+      ...(partial.riferimento_id ? { riferimento_id: partial.riferimento_id } : {}),
     }).select('*').single();
     if (data && !error) {
-      const enriched: import('@/types/index').CommunityMessageWithProfile = {
+      const enriched: CommunityMessageWithProfile = {
         ...data,
         profiles: { id: user.id, nome: user.name, avatar_url: user.avatar || null },
       };
@@ -192,81 +201,129 @@ export default function CommunityHub() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar canali */}
-        <div className="w-52 shrink-0 border-r border-white/10 p-3 overflow-y-auto hidden md:block">
-          <p className="text-white/30 text-[10px] uppercase tracking-wider mb-2 px-2">Canali</p>
-          <ChannelList
-            channels={channels}
-            activeChannelId={activeChannel?.id ?? ''}
-            onSelectChannel={(chId) => {
-              const ch = channels.find(c => c.id === chId);
-              if (ch) setActiveChannel(ch);
-            }}
-            unreadCounts={{}}
-          />
-          <div className="mt-4">
-            <LeaderboardWidget entries={leaderboard} currentUserId={user?.id ?? ''} />
-          </div>
-        </div>
-
-        {/* Chat */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
-            {messages.map((msg, i) => {
-              const prev = i > 0 ? messages[i - 1] : null;
-              const isFirstInGroup = !prev || prev.user_id !== msg.user_id;
-              return (
-                <div key={msg.id} className={isFirstInGroup && i > 0 ? 'mt-3' : ''}>
-                  <MessageBubble
-                    message={msg}
-                    currentUserId={user?.id ?? ''}
-                    isFirstInGroup={isFirstInGroup}
-                    isAdmin={isAdmin}
-                    onReport={() => {
-                      supabase.from('moderation_queue').upsert({ message_id: msg.id, segnalazioni_count: 1 });
-                    }}
-                    onReply={() => { /* TODO: thread */ }}
-                    onDelete={async () => {
-                      await supabase.from('community_messages').update({ eliminato: true }).eq('id', msg.id);
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {!isMember && community?.tipo !== 'privata' && (
-            <div className="px-4 py-3 border-t border-white/10 bg-white/[0.03] flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-white text-sm font-medium">
-                  {community?.tipo === 'approvazione' ? 'Community su approvazione' : 'Unisciti per partecipare'}
-                </p>
-                <p className="text-white/40 text-xs truncate">
-                  {community?.membri_count ?? 0} membri · {community?.tipo === 'approvazione' ? 'richiesta richiesta' : 'accesso libero'}
-                </p>
-              </div>
-              {joinRequested ? (
-                <div className="flex items-center gap-1.5 text-yellow-400 text-sm shrink-0">
-                  <Clock size={15} /> In attesa
-                </div>
-              ) : (
-                <button
-                  onClick={handleJoin}
-                  disabled={joining}
-                  className="flex items-center gap-1.5 bg-hiko-primary text-hiko-deep text-sm font-bold px-4 py-2 rounded-xl shrink-0 disabled:opacity-60 hover:bg-hiko-primary/90 transition-colors"
-                >
-                  {joining ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
-                  {community?.tipo === 'approvazione' ? 'Richiedi' : 'Unisciti'}
-                </button>
-              )}
+        {/* Sidebar canali — testo completo, collassabile */}
+        {sidebarOpen && (
+          <div className="w-52 shrink-0 border-r border-white/10 flex flex-col overflow-y-auto">
+            <div className="flex items-center justify-between px-3 pt-3 pb-1">
+              <p className="text-white/30 text-[10px] uppercase tracking-wider px-1">Canali</p>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                title="Chiudi sidebar"
+                className="p-1 text-white/30 hover:text-white/70 transition-colors rounded-lg hover:bg-white/5"
+              >
+                <ChevronLeft size={14} />
+              </button>
             </div>
+            <div className="px-3">
+              <ChannelList
+                channels={channels}
+                activeChannelId={activeChannel?.id ?? ''}
+                onSelectChannel={(chId) => {
+                  const ch = channels.find(c => c.id === chId);
+                  if (ch) setActiveChannel(ch);
+                }}
+                unreadCounts={{}}
+              />
+            </div>
+            <div className="px-3 mt-4 pb-3">
+              <LeaderboardWidget entries={leaderboard} currentUserId={user?.id ?? ''} />
+            </div>
+          </div>
+        )}
+
+        {/* Area principale — chat o vista speciale */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Barra in alto: toggle sidebar + nome canale attivo */}
+          <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 border-b border-white/5">
+            {!sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                title="Apri canali"
+                className="p-1 text-white/30 hover:text-white/70 transition-colors rounded-lg hover:bg-white/5"
+              >
+                <ChevronRight size={14} />
+              </button>
+            )}
+            {activeChannel && (
+              <span className="text-xs text-white/40 font-medium">{activeChannel.nome}</span>
+            )}
+          </div>
+
+          {/* Vista canale */}
+          {activeChannel?.tipo === 'percorsi' ? (
+            <PercorsiChannelView
+              canPost={isMember && !isReadOnly}
+              onSendMessage={handleSend}
+            />
+          ) : activeChannel?.tipo === 'sfide' ? (
+            <SfideChannelView communityId={id ?? ''} />
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
+                {messages.map((msg, i) => {
+                  const prev = i > 0 ? messages[i - 1] : null;
+                  const isFirstInGroup = !prev || prev.user_id !== msg.user_id;
+                  return (
+                    <div key={msg.id} className={isFirstInGroup && i > 0 ? 'mt-3' : ''}>
+                      <MessageBubble
+                        message={msg}
+                        currentUserId={user?.id ?? ''}
+                        isFirstInGroup={isFirstInGroup}
+                        isAdmin={isAdmin}
+                        onReport={() => {
+                          supabase.from('moderation_queue').upsert({ message_id: msg.id, segnalazioni_count: 1 });
+                        }}
+                        onReply={() => {}}
+                        onDelete={async () => {
+                          // Filtra anche su user_id per rispettare la policy RLS
+                          const filter = isAdmin
+                            ? supabase.from('community_messages').update({ eliminato: true }).eq('id', msg.id)
+                            : supabase.from('community_messages').update({ eliminato: true }).eq('id', msg.id).eq('user_id', user!.id);
+                          const { error } = await filter;
+                          // Rimozione locale solo se il DB ha confermato (il Realtime la farà comunque via UPDATE event)
+                          if (!error) useCommunityStore.getState().removeMessage(msg.id);
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+                <div ref={bottomRef} />
+              </div>
+
+              {!isMember && community?.tipo !== 'privata' && (
+                <div className="px-4 py-3 border-t border-white/10 bg-white/[0.03] flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium">
+                      {community?.tipo === 'approvazione' ? 'Community su approvazione' : 'Unisciti per partecipare'}
+                    </p>
+                    <p className="text-white/40 text-xs truncate">
+                      {community?.membri_count ?? 0} membri · {community?.tipo === 'approvazione' ? 'richiesta richiesta' : 'accesso libero'}
+                    </p>
+                  </div>
+                  {joinRequested ? (
+                    <div className="flex items-center gap-1.5 text-yellow-400 text-sm shrink-0">
+                      <Clock size={15} /> In attesa
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleJoin}
+                      disabled={joining}
+                      className="flex items-center gap-1.5 bg-hiko-primary text-hiko-deep text-sm font-bold px-4 py-2 rounded-xl shrink-0 disabled:opacity-60 hover:bg-hiko-primary/90 transition-colors"
+                    >
+                      {joining ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
+                      {community?.tipo === 'approvazione' ? 'Richiedi' : 'Unisciti'}
+                    </button>
+                  )}
+                </div>
+              )}
+              <MessageComposer
+                channelId={activeChannel?.id ?? ''}
+                onSend={handleSend}
+                disabled={!isMember}
+                readOnly={isReadOnly}
+              />
+            </>
           )}
-          <MessageComposer
-            channelId={activeChannel?.id ?? ''}
-            onSend={handleSend}
-            disabled={!isMember}
-            readOnly={isReadOnly}
-          />
         </div>
       </div>
       {/* Modal conferma abbandono */}

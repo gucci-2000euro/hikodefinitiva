@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCommentsStore } from '@/store/useCommentsStore';
 import { useMessagesStore } from '@/store/useMessagesStore';
-import { Heart, MessageCircle, Plus, Users, MessageSquare, Search, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Plus, Users, MessageSquare, Search, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { Logo } from '@/components/Logo';
@@ -34,6 +34,7 @@ export default function Social() {
 
   const [tab, setTab] = useState<Tab>('feed');
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [activePostMenu, setActivePostMenu] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   const { data: posts = [], isLoading: loadingFeed } = useQuery<PostRow[]>({
@@ -72,6 +73,12 @@ export default function Social() {
       await supabase.from('post_likes').insert({ post_id: postId, user_id: user.id });
     }
     queryClient.invalidateQueries({ queryKey: ['feed'] });
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    await supabase.from('posts').delete().eq('id', postId);
+    queryClient.invalidateQueries({ queryKey: ['feed'] });
+    setActivePostMenu(null);
   };
 
   const handleJoin = (c: Community) => {
@@ -147,16 +154,36 @@ export default function Social() {
             const timeAgo = new Date(post.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 
             return (
-              <div key={post.id} className="bg-white/5 border-y border-white/5 pb-4">
+              <div key={post.id} className="bg-white/5 border-y border-white/5 pb-4" onClick={() => activePostMenu === post.id && setActivePostMenu(null)}>
                 <div className="flex items-center gap-3 p-4">
                   {avatar
                     ? <img src={avatar} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-white/10" />
                     : <div className="w-10 h-10 rounded-full bg-hiko-primary/20 border border-white/10 flex items-center justify-center text-hiko-primary font-bold">{displayName[0]?.toUpperCase()}</div>
                   }
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm">{displayName}</p>
                     <p className="text-xs text-white/50">{timeAgo}</p>
                   </div>
+                  {user && post.user_id === user.id && (
+                    <div className="relative">
+                      <button
+                        onClick={e => { e.stopPropagation(); setActivePostMenu(activePostMenu === post.id ? null : post.id); }}
+                        className="p-1.5 text-white/40 hover:text-white/80 transition-colors"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                      {activePostMenu === post.id && (
+                        <div className="absolute right-0 top-8 bg-hiko-deep border border-white/10 rounded-xl shadow-xl z-20 min-w-[140px]">
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-400/10 rounded-xl w-full"
+                          >
+                            <Trash2 size={14} /> Elimina post
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {post.image_url && (

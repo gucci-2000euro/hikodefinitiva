@@ -32,6 +32,7 @@ interface MessagesState {
   getConversation: (participantId: string) => Conversation | undefined;
   getMessages: (conversationId: string) => Message[];
   sendMessage: (conversationId: string, participantId: string, senderId: string, senderName: string, senderAvatar: string, text: string) => void;
+  deleteMessage: (messageId: string) => void;
   markRead: (conversationId: string) => void;
   startConversation: (participant: { id: string; name: string; avatar: string }) => string;
   totalUnread: () => number;
@@ -88,6 +89,9 @@ export const useMessagesStore = create<MessagesState>()(
         }));
         // TODO [BE]: qui va la chiamata API per persistere il messaggio e notificare il destinatario
       },
+      deleteMessage: (messageId) => set(s => ({
+        messages: s.messages.filter(m => m.id !== messageId),
+      })),
       markRead: (conversationId) => set(s => ({
         messages: s.messages.map(m => m.conversationId === conversationId ? { ...m, read: true } : m),
         conversations: s.conversations.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c),

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Marker, useMap } from 'react-leaflet';
+import { useEffect } from 'react';
+import { Marker } from 'react-leaflet';
 import L from 'leaflet';
 
 const STYLE_ID = 'hiko-user-location-style';
@@ -40,19 +40,9 @@ interface Props {
 }
 
 export default function UserLocationMarker({ pos }: Props) {
-  const map = useMap();
-  const hascentered = useRef(false);
-
   useEffect(() => {
     ensureStyle();
   }, []);
-
-  useEffect(() => {
-    if (pos && !hascentered.current) {
-      map.flyTo(pos, 15, { duration: 1.5 });
-      hascentered.current = true;
-    }
-  }, [pos, map]);
 
   if (!pos) return null;
   return <Marker position={pos} icon={locationIcon} />;
