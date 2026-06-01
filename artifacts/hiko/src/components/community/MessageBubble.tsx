@@ -58,6 +58,9 @@ export function MessageBubble({
         <div className={`rounded-2xl px-3 py-2 ${
           isOwn ? 'bg-hiko-primary text-hiko-deep rounded-tr-sm' : 'bg-white/10 text-white rounded-tl-sm'
         }`}>
+          {message.tipo === 'immagine' && message.image_url && (
+            <img src={message.image_url} alt="Immagine" className="max-w-[260px] w-full rounded-xl object-cover" />
+          )}
           {message.tipo === 'testo' && (
             <p className="text-sm whitespace-pre-wrap break-words">{message.contenuto}</p>
           )}

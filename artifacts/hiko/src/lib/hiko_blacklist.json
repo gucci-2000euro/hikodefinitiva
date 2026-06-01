@@ -197,6 +197,9 @@
     { "term": "go fuck yourself",               "category": "INSULT", "action": "block" },
     { "term": "eat shit",                       "category": "INSULT", "action": "block" },
     { "term": "go to hell",                     "category": "INSULT", "action": "block" },
+    { "term": "fottiti",                         "category": "INSULT", "action": "block" },
+    { "term": "vai a farti fottere",             "category": "INSULT", "action": "block" },
+    { "term": "si vada a far fottere",           "category": "INSULT", "action": "block" },
 
     { "term": "ti ammazzo",                     "category": "THREAT", "action": "block" },
     { "term": "ti uccido",                      "category": "THREAT", "action": "block" },

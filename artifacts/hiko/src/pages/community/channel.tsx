@@ -103,6 +103,7 @@ export default function ChannelView() {
 
       <MessageComposer
         channelId={channelId ?? ''}
+        userId={user?.id}
         onSend={handleSend}
         readOnly={!!(channel?.solo_admin && !user)}
       />

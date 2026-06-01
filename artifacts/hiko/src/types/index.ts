@@ -59,7 +59,8 @@ export interface CommunityMessage {
   channel_id: string;
   user_id: string;
   contenuto: string;
-  tipo: 'testo' | 'percorso' | 'sfida' | 'run';
+  tipo: 'testo' | 'percorso' | 'sfida' | 'run' | 'immagine';
+  image_url?: string | null;
   riferimento_id: string | null;
   thread_parent_id: string | null;
   moderazione_stato: 'approvato' | 'segnalato' | 'bloccato' | 'pending';

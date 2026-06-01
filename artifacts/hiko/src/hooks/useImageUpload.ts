@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
-type Bucket = 'avatars' | 'community-covers' | 'post-images';
+type Bucket = 'avatars' | 'community-covers' | 'post-images' | 'dm-images';
 
 export function useImageUpload(bucket: Bucket) {
   const [uploading, setUploading] = useState(false);

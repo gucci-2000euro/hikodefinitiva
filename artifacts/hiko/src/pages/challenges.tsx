@@ -65,17 +65,28 @@ export default function Challenges() {
   };
 
   const { data: challenges = [], isLoading, isError } = useQuery<CommunityChallengeRow[]>({
-    queryKey: ['community-challenges'],
+    queryKey: ['community-challenges', user?.id],
     queryFn: async () => {
+      if (!user) return [];
+      // Recupera solo le community a cui l'utente è iscritto
+      const { data: membership } = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', user.id)
+        .eq('stato', 'attivo');
+      const ids = (membership ?? []).map((m: { community_id: string }) => m.community_id);
+      if (ids.length === 0) return [];
       const { data, error } = await supabase
         .from('community_challenges')
         .select('*, communities(nome, citta)')
+        .in('community_id', ids)
         .gt('scadenza', new Date().toISOString())
         .order('scadenza', { ascending: true })
         .limit(30);
       if (error) throw error;
       return (data ?? []) as CommunityChallengeRow[];
     },
+    enabled: !!user,
     staleTime: 60_000,
     retry: false,
   });
@@ -95,6 +106,9 @@ export default function Challenges() {
     enabled: !!user,
     staleTime: 30_000,
   });
+
+  // Nel hub /challenges mostriamo SOLO le sfide community accettate (con progresso)
+  const acceptedChallenges = challenges.filter(ch => progressMap[ch.id]);
 
   return (
     <div className="min-h-screen bg-hiko-deep text-white pb-24">
@@ -130,7 +144,15 @@ export default function Challenges() {
       {/* ── COMMUNITY TAB ─────────────────────────────────────────── */}
       {tab === 'community' && (
         <div className="px-6 space-y-4">
-          {isLoading && (
+          {!user && (
+            <div className="text-center py-16 text-white/40">
+              <Lock size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">Accedi per vedere le sfide</p>
+              <p className="text-sm">Le sfide community sono visibili solo ai membri.</p>
+            </div>
+          )}
+
+          {!!user && isLoading && (
             <div className="flex justify-center py-16">
               <Loader2 size={32} className="text-hiko-primary animate-spin" />
             </div>
@@ -145,18 +167,18 @@ export default function Challenges() {
             </div>
           )}
 
-          {!isLoading && !isError && challenges.length === 0 && (
+          {!isLoading && !isError && acceptedChallenges.length === 0 && (
             <div className="text-center py-16 text-white/40">
               <Trophy size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium mb-1">Nessuna sfida attiva</p>
-              <p className="text-sm">Unisciti a una community per vedere le sue sfide.</p>
-              <Link href="/community" className="inline-block mt-4 bg-hiko-primary text-hiko-deep text-sm font-bold px-5 py-2 rounded-xl">
+              <p className="font-medium mb-1">Nessuna sfida accettata</p>
+              <p className="text-sm">Vai nel canale <span className="text-white/60">Sfide</span> di una community e accetta una sfida per vederla qui.</p>
+              <Link href="/social" className="inline-block mt-4 bg-hiko-primary text-hiko-deep text-sm font-bold px-5 py-2 rounded-xl">
                 Scopri Community
               </Link>
             </div>
           )}
 
-          {!isLoading && !isError && challenges.map((ch, i) => {
+          {!isLoading && !isError && acceptedChallenges.map((ch, i) => {
             const progress = progressMap[ch.id];
             const pct = progress
               ? Math.min((progress.valore_attuale / ch.obiettivo_valore) * 100, 100)

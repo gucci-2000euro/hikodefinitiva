@@ -264,7 +264,7 @@ export default function CommunityHub() {
               }}
             />
           ) : activeChannel?.tipo === 'sfide' ? (
-            <SfideChannelView communityId={id ?? ''} />
+            <SfideChannelView communityId={id ?? ''} canCreate={isMember} />
           ) : (
             <>
               <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
@@ -326,6 +326,7 @@ export default function CommunityHub() {
               )}
               <MessageComposer
                 channelId={activeChannel?.id ?? ''}
+                userId={user?.id}
                 onSend={handleSend}
                 disabled={!isMember}
                 readOnly={isReadOnly}

@@ -1,10 +1,11 @@
 import { useRef } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Settings, LogOut, Award, Activity, Calendar, Flame, Timer, TrendingUp, Zap, Camera } from 'lucide-react';
+import { Settings, LogOut, Award, Activity, Calendar, Flame, Timer, TrendingUp, Zap, Camera, Star } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Logo } from '@/components/Logo';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useRuns } from '@/hooks/useRuns';
+import { useUserChallenges } from '@/hooks/usePersonalChallenges';
 import { RunHistoryChart } from '@/components/stats/RunHistoryChart';
 import { PaceChart } from '@/components/stats/PaceChart';
 
@@ -25,6 +26,10 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const avatarUpload = useImageUpload('avatars');
   const { data: runs = [] } = useRuns();
+  const { data: userChallenges = [] } = useUserChallenges();
+  const stelle = userChallenges
+    .filter(uc => uc.completata)
+    .reduce((sum, uc) => sum + (uc.challenge?.punti ?? 0), 0);
 
   const handleLogout = () => {
     logout();
@@ -86,13 +91,18 @@ export default function Profile() {
       value: formatCalories(user.weeklyCalories ?? 0),
       unit: 'kcal',
       Icon: Flame,
-      accent: true,
     },
     {
       label: 'Total Calories Burned',
       value: formatCalories(user.totalCalories ?? 0),
       unit: 'kcal total',
       Icon: Flame,
+    },
+    {
+      label: 'Stelle',
+      value: stelle.toString(),
+      unit: 'pt',
+      Icon: Star,
     },
   ];
 
@@ -156,21 +166,21 @@ export default function Profile() {
             <Activity size={20} className="text-hiko-primary" /> My Records
           </h3>
           <div className="grid grid-cols-2 gap-3">
-            {stats.map(({ label, value, unit, Icon, accent }, i) => {
+            {stats.map(({ label, value, unit, Icon }, i) => {
               const isLast = i === stats.length - 1;
               const isOdd = stats.length % 2 !== 0;
               const fullWidth = isLast && isOdd;
               return (
                 <div
                   key={label}
-                  className={`glass-panel p-4 rounded-2xl flex flex-col gap-1 ${fullWidth ? 'col-span-2' : ''} ${accent ? 'border border-hiko-primary/30 bg-hiko-primary/5' : ''}`}
+                  className={`glass-panel p-4 rounded-2xl flex flex-col gap-1 ${fullWidth ? 'col-span-2' : ''}`}
                 >
                   <div className="flex items-center gap-1.5 text-white/50 text-[11px] font-medium uppercase tracking-wider">
-                    <Icon size={12} className={accent ? 'text-hiko-primary' : ''} />
+                    <Icon size={12} />
                     {label}
                   </div>
                   <div className="flex items-baseline gap-1.5">
-                    <span className={`text-2xl font-bold ${accent ? 'text-hiko-primary' : ''}`}>{value}</span>
+                    <span className="text-2xl font-bold">{value}</span>
                     <span className="text-xs text-white/40">{unit}</span>
                   </div>
                 </div>
