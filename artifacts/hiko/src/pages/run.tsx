@@ -11,7 +11,7 @@ import { useMapIsDark, mapPanel } from '@/store/useMapStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Trophy, FastForward, Activity, Navigation,
-  CheckCircle, AlertCircle, Loader2, Play, MapPin,
+  CheckCircle, AlertCircle, Loader2, Play, MapPin, LocateFixed,
 } from 'lucide-react';
 import { bearing, distanceM, nearestWaypointIndex, fmtDist, bearingLabel } from '@/lib/geo';
 
@@ -42,6 +42,11 @@ export default function RunSession() {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [nextWpIdx, setNextWpIdx] = useState(0);
   const [showEndModal, setShowEndModal] = useState(false);
+  // Mappa durante la corsa: follow = la vista segue l'utente; quando l'utente
+  // trascina la mappa il follow si disattiva, così può esplorare e zoomare libero.
+  const [follow, setFollow] = useState(true);
+  const [followTrigger, setFollowTrigger] = useState(0);
+  const [runCenter, setRunCenter] = useState<[number, number] | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -133,8 +138,15 @@ export default function RunSession() {
       nextWpRef.current = 0;
       setNextWpIdx(0);
     }
+    // Centro iniziale stabile della mappa-corsa (poi il follow segue il GPS).
+    setRunCenter(geoPos ?? (wps[0] as [number, number]) ?? route.center);
     startRun(route.id);
     setPhase('running');
+  };
+
+  const handleRecenter = () => {
+    setFollow(true);
+    setFollowTrigger(t => t + 1);
   };
 
   if (!route) return null;
@@ -156,6 +168,7 @@ export default function RunSession() {
         {/* Mappa con il percorso */}
         <div className="absolute inset-0 z-0 opacity-85">
           <MapView
+            key="run-map-ready"
             center={mapCenter}
             zoom={15}
             activeRoute={route}
@@ -223,14 +236,18 @@ export default function RunSession() {
   /* ── FASE RUNNING ─────────────────────────────────────────────── */
   return (
     <div className="relative w-full h-screen overflow-hidden bg-hiko-deep text-white">
-      {/* Mappa */}
+      {/* Mappa — interattiva: l'utente può spostarsi e zoomare durante la corsa */}
       <div className="absolute inset-0 z-0 opacity-80">
         <MapView
-          center={userPos ?? mapCenter}
+          key="run-map-active"
+          center={runCenter ?? userPos ?? mapCenter}
           zoom={16}
           activeRoute={route}
           userPos={userPos ?? undefined}
-          interactive={false}
+          interactive
+          followPos={follow ? userPos : null}
+          followTrigger={followTrigger}
+          onUserInteract={() => setFollow(false)}
           showRouteEndpoints
         />
       </div>
@@ -244,6 +261,15 @@ export default function RunSession() {
           <X size={22} />
         </button>
         <div className="flex items-center gap-2 pointer-events-auto">
+          <button
+            onClick={handleRecenter}
+            aria-label="Ricentra sulla mia posizione"
+            className={`${mapPanel(isDark)} p-3 rounded-full transition-colors hover:bg-white/10 ${
+              follow ? 'text-white/70' : 'text-hiko-primary'
+            }`}
+          >
+            <LocateFixed size={20} />
+          </button>
           <div className={`${mapPanel(isDark)} px-4 py-2 rounded-full flex items-center gap-2`}>
             <div className="w-2 h-2 rounded-full bg-hiko-primary animate-pulse" />
             <span className="text-sm font-bold text-hiko-primary tracking-wider">LIVE</span>

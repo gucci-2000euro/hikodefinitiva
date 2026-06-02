@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useLocation, useParams } from 'wouter';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDataStore, Route } from '@/store/useDataStore';
 import { useRoutes } from '@/hooks/useRoutes';
@@ -8,9 +8,11 @@ import UserLocationMarker from '@/components/UserLocationMarker';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { Logo } from '@/components/Logo';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LocateFixed, Play, Navigation, Users, Zap, MapPin, X } from 'lucide-react';
+import { LocateFixed, Play, Navigation, Users, Zap, MapPin, X, Eye, ArrowLeft } from 'lucide-react';
 import { MapStyleButton } from '@/components/MapStyleButton';
 import { useMapIsDark, mapPanel } from '@/store/useMapStore';
+import { RoutePreviewModal } from '@/components/route/RoutePreviewModal';
+import { openDirections } from '@/lib/routeNav';
 
 const LOCATION_PREF_KEY = 'hiko_location_consent';
 
@@ -30,7 +32,20 @@ export default function Home() {
   const { data: routes = [] } = useRoutes();
   const isDark = useMapIsDark();
   
+  // Se l'URL è /routes/:id, pre-selezioniamo quel percorso (come il click sul pin).
+  const params = useParams();
+  const preselectId = params.id;
+  const appliedPreselect = useRef<string | null>(null);
+
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  // Bottom sheet trascinabile: collapsed (altezza contenuto) / expanded (tutta la pagina).
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [collapsedH, setCollapsedH] = useState(0);
+  const [viewportH, setViewportH] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 800
+  );
+  const sheetContentRef = useRef<HTMLDivElement>(null);
   const [locationConsent, setLocationConsent] = useState<'granted' | 'denied' | null>(null);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
@@ -105,13 +120,47 @@ export default function Home() {
     }
   }, [geoPos]);
 
+  // Arrivo da /routes/:id → seleziona il percorso e centra la mappa su di esso.
+  useEffect(() => {
+    if (!preselectId || routes.length === 0) return;
+    if (appliedPreselect.current === preselectId) return;
+    const r = routes.find(x => x.id === preselectId);
+    if (r) {
+      appliedPreselect.current = preselectId;
+      setSelectedRoute(r);
+      setMapCenter(r.center);
+      setMapZoom(16);
+      setFlyTrigger(t => t + 1);
+    }
+  }, [preselectId, routes]);
+
   // TODO [FE1]: runners arriveranno da Supabase Realtime (posizioni GPS live degli utenti attivi)
 
   const handleRouteClick = (route: Route) => {
     setSelectedRoute(route);
+    setSheetExpanded(false);
     setMapCenter(route.center);
     setMapZoom(16);
   };
+
+  const closeSheet = () => {
+    setSelectedRoute(null);
+    setSheetExpanded(false);
+  };
+
+  // Misura l'altezza naturale del contenuto della sheet (stato "collapsed").
+  useLayoutEffect(() => {
+    if (selectedRoute && sheetContentRef.current) {
+      setCollapsedH(sheetContentRef.current.scrollHeight);
+    }
+  }, [selectedRoute]);
+
+  // Tiene aggiornata l'altezza del viewport per lo stato "expanded".
+  useEffect(() => {
+    const onResize = () => setViewportH(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const handleCenterUser = () => {
     setSelectedRoute(null);
@@ -135,6 +184,7 @@ export default function Home() {
       setLocation(`/run/${selectedRoute.id}`);
     });
   };
+
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-hiko-deep">
@@ -254,22 +304,47 @@ export default function Home() {
       <AnimatePresence>
         {selectedRoute && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedRoute(null)}
+              onClick={closeSheet}
               className="absolute inset-0 z-20 bg-black/20 backdrop-blur-sm"
             />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`absolute bottom-0 left-0 right-0 z-30 ${mapPanel(isDark)} rounded-t-3xl p-6 pb-24`}
+
+            {/* Freccia indietro → torna alla lista percorsi */}
+            <button
+              onClick={() => setLocation('/routes')}
+              aria-label="Torna ai percorsi"
+              className={`absolute top-12 left-4 z-40 ${mapPanel(isDark)} p-3 rounded-full text-white hover:bg-white/10 transition-colors`}
             >
-              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
-              
+              <ArrowLeft size={22} />
+            </button>
+
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.35, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                const dy = info.offset.y;
+                const vy = info.velocity.y;
+                if (dy < -70 || vy < -550) {
+                  setSheetExpanded(true);            // trascinata su → tutta la pagina
+                } else if (dy > 70 || vy > 550) {
+                  if (sheetExpanded) setSheetExpanded(false); // da espansa → torna compatta
+                  else closeSheet();                  // da compatta → chiudi la corsa
+                }
+              }}
+              initial={{ height: 0 }}
+              animate={{ height: sheetExpanded ? viewportH : (collapsedH || 'auto') }}
+              exit={{ height: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 280 }}
+              className={`absolute bottom-0 left-0 right-0 z-30 ${mapPanel(isDark)} rounded-t-3xl overflow-hidden touch-none`}
+            >
+            <div ref={sheetContentRef} className="px-6 pt-3 pb-28">
+              {/* Maniglia di trascinamento */}
+              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing" />
+
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-1">{selectedRoute.name}</h2>
@@ -296,22 +371,45 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <button 
-                  onClick={handleStartRun}
-                  className="flex-1 bg-hiko-primary text-hiko-deep font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-hiko-primary/90 transition-colors"
+              {/* Riga 1: Preview + Take me there (metà ciascuno) */}
+              <div className="flex gap-4 mb-3">
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="flex-1 bg-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/20 transition-colors"
                 >
-                  <Play size={20} className="fill-hiko-deep" />
-                  START RUN
+                  <Eye size={20} />
+                  Preview
                 </button>
-                <button className="bg-white/10 text-white font-medium px-6 py-4 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-colors">
+                <button
+                  onClick={() => selectedRoute && openDirections(selectedRoute)}
+                  className="flex-1 bg-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/20 transition-colors"
+                >
                   <Navigation size={20} />
+                  Take me there
                 </button>
               </div>
+
+              {/* Riga 2: Start run a tutta larghezza */}
+              <button
+                onClick={handleStartRun}
+                className="w-full bg-hiko-primary text-hiko-deep font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-hiko-primary/90 transition-colors"
+              >
+                <Play size={20} className="fill-hiko-deep" />
+                START RUN
+              </button>
+            </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      {/* Preview percorso — componente condiviso (stessa UI ovunque) */}
+      <RoutePreviewModal
+        route={selectedRoute}
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        onStart={handleStartRun}
+      />
     </div>
   );
 }

@@ -62,6 +62,13 @@ interface MapViewProps {
   onViewChange?: (center: [number, number], zoom: number) => void;
   interactive?: boolean;
   showRouteEndpoints?: boolean;
+  /** Se valorizzato, la mappa segue questa posizione (pan, senza toccare lo zoom).
+   *  Passa null per sospendere il follow lasciando l'utente libero di muoversi. */
+  followPos?: [number, number] | null;
+  /** Incrementa per forzare una ri-centratura immediata su followPos. */
+  followTrigger?: number;
+  /** Chiamato quando l'utente trascina la mappa (per disattivare il follow). */
+  onUserInteract?: () => void;
   children?: React.ReactNode;
 }
 
@@ -97,6 +104,21 @@ function UserMarker({ pos }: { pos: [number, number] }) {
   return <Marker position={pos} icon={userIcon} />;
 }
 
+// Segue una posizione muovendo solo il centro (lo zoom resta quello scelto dall'utente).
+function FollowController({ pos, trigger }: { pos?: [number, number] | null; trigger?: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pos) map.panTo(pos, { animate: true, duration: 0.6 });
+  }, [pos, trigger, map]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+// Rileva il trascinamento manuale della mappa (non gli spostamenti programmatici).
+function UserInteractTracker({ onUserInteract }: { onUserInteract: () => void }) {
+  useMapEvents({ dragstart() { onUserInteract(); } });
+  return null;
+}
+
 
 export default function MapView({
   center,
@@ -110,6 +132,9 @@ export default function MapView({
   onViewChange,
   interactive = true,
   showRouteEndpoints = false,
+  followPos,
+  followTrigger,
+  onUserInteract,
   children,
 }: MapViewProps) {
   const styleId = useMapStore(s => s.styleId);
@@ -136,6 +161,8 @@ export default function MapView({
 
       <MapUpdater center={center} zoom={zoom} flyTrigger={flyTrigger} />
       {onViewChange && <MapPositionTracker onViewChange={onViewChange} />}
+      {followPos !== undefined && <FollowController pos={followPos} trigger={followTrigger} />}
+      {onUserInteract && <UserInteractTracker onUserInteract={onUserInteract} />}
 
       {/* Browse-mode route pins */}
       {!activeRoute && routes.map(route => (

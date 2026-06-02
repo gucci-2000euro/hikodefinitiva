@@ -13,7 +13,6 @@ import Auth from "@/pages/auth";
 import Home from "@/pages/home";
 import RunSession from "@/pages/run";
 import RoutesList from "@/pages/routes";
-import RouteDetail from "@/pages/route-detail";
 import Challenges from "@/pages/challenges";
 import Social from "@/pages/social";
 import SocialNew from "@/pages/social-new";
@@ -37,7 +36,9 @@ function Router() {
       <Route path="/auth" component={Auth} />
       <Route path="/" component={Home} />
       <Route path="/routes" component={RoutesList} />
-      <Route path="/routes/:id" component={RouteDetail} />
+      {/* Selezionare un percorso apre la home con il percorso già selezionato
+          (stessa esperienza del click sul pin in mappa). */}
+      <Route path="/routes/:id" component={Home} />
       <Route path="/challenges" component={Challenges} />
       <Route path="/social" component={Social} />
       <Route path="/social/new" component={SocialNew} />

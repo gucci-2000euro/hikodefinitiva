@@ -1,19 +1,47 @@
 import { useState } from 'react';
 import { useRoutes } from '@/hooks/useRoutes';
 import { Link } from 'wouter';
-import { MapIcon, Activity, Mountain, Users, Loader2 } from 'lucide-react';
+import { MapIcon, Activity, Mountain, Users, Loader2, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function RoutesList() {
   const { data: routes = [], isLoading } = useRoutes();
   const [filter, setFilter] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
+  const [query, setQuery] = useState('');
 
-  const filteredRoutes = routes.filter(r => filter === 'all' || r.difficulty === filter);
+  const q = query.trim().toLowerCase();
+  const filteredRoutes = routes.filter(r =>
+    (filter === 'all' || r.difficulty === filter) &&
+    (q === '' || r.name.toLowerCase().includes(q))
+  );
 
   return (
     <div className="min-h-screen bg-hiko-deep text-white pb-24">
       <div className="sticky top-0 z-20 bg-hiko-deep/90 backdrop-blur-md px-6 py-4 border-b border-white/10">
         <h1 className="text-2xl font-bold mb-4">Routes</h1>
+
+        {/* Search by name */}
+        <div className="relative mb-3">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cerca un percorso..."
+            aria-label="Cerca un percorso per nome"
+            className="w-full bg-white/10 text-white placeholder-white/40 rounded-full pl-10 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hiko-primary/50"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              aria-label="Cancella ricerca"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
           {['all', 'easy', 'medium', 'hard'].map((f) => (
             <button
@@ -35,6 +63,12 @@ export default function RoutesList() {
         {isLoading && (
           <div className="flex justify-center py-16">
             <Loader2 size={32} className="text-hiko-primary animate-spin" />
+          </div>
+        )}
+        {!isLoading && filteredRoutes.length === 0 && (
+          <div className="text-center py-16 text-white/50">
+            <Search size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="text-sm">Nessun percorso trovato{q && <> per “{query.trim()}”</>}.</p>
           </div>
         )}
         {filteredRoutes.map((route, i) => (
