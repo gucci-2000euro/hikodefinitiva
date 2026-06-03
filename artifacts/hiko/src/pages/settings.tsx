@@ -70,7 +70,11 @@ export default function SettingsPage() {
 
       {/* Contenuto */}
       <div className="px-4 pt-4">
-        {section === 'profile' && (
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 size={32} className="text-hiko-primary animate-spin" />
+          </div>
+        ) : section === 'profile' ? (
           <ProfileSettings
             profile={profile}
             completion={completion1}
@@ -78,8 +82,7 @@ export default function SettingsPage() {
             onChange={debouncedSave}
             onImmediate={immediateSave}
           />
-        )}
-        {section === 'running' && (
+        ) : (
           <RunningExperienceSettings
             profile={profile}
             onChange={debouncedSave}
