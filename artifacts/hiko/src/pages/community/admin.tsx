@@ -20,20 +20,27 @@ export default function CommunityAdmin() {
 
   const isAuthorized = role === 'admin' || role === 'moderatore';
 
-  const { data: members = [] } = useQuery<CommunityMember[]>({
+  const { data: members = [] } = useQuery<(CommunityMember & { profiles: { nome: string | null; avatar_url: string | null } | null })[]>({
     queryKey: ['community-members', id],
     queryFn: async () => {
-      const { data } = await supabase.from('community_members').select('*').eq('community_id', id);
-      return (data ?? []) as CommunityMember[];
+      const { data } = await supabase
+        .from('community_members')
+        .select('*, profiles(nome, avatar_url)')
+        .eq('community_id', id);
+      return (data ?? []) as (CommunityMember & { profiles: { nome: string | null; avatar_url: string | null } | null })[];
     },
     enabled: isAuthorized && tab === 'membri',
   });
 
-  const { data: joinRequests = [] } = useQuery<JoinRequest[]>({
+  const { data: joinRequests = [] } = useQuery<(JoinRequest & { profiles: { nome: string | null; avatar_url: string | null } | null })[]>({
     queryKey: ['join-requests', id],
     queryFn: async () => {
-      const { data } = await supabase.from('community_join_requests').select('*').eq('community_id', id).eq('stato', 'in_attesa');
-      return (data ?? []) as JoinRequest[];
+      const { data } = await supabase
+        .from('community_join_requests')
+        .select('*, profiles(nome, avatar_url)')
+        .eq('community_id', id)
+        .eq('stato', 'in_attesa');
+      return (data ?? []) as (JoinRequest & { profiles: { nome: string | null; avatar_url: string | null } | null })[];
     },
     enabled: isAuthorized && tab === 'richieste',
   });
@@ -123,43 +130,50 @@ export default function CommunityAdmin() {
       <div className="px-4 pt-4">
         {tab === 'membri' && (
           <div className="flex flex-col gap-2">
-            {members.map(m => (
-              <div key={m.user_id} className="glass-panel rounded-xl p-3 flex items-center gap-3">
-                <div className="w-9 h-9 bg-hiko-muted rounded-full flex items-center justify-center text-xs text-white/60">
-                  {m.user_id.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{m.user_id.slice(0, 12)}...</p>
-                  <p className="text-white/40 text-xs capitalize">{m.ruolo} · {m.stato}</p>
-                </div>
-                {role === 'admin' && m.ruolo !== 'admin' && (
-                  <div className="flex gap-1">
-                    {m.ruolo === 'membro' && (
-                      <button
-                        onClick={() => updateMember.mutate({ userId: m.user_id, patch: { ruolo: 'moderatore' } })}
-                        className="text-xs bg-hiko-primary/20 text-hiko-primary px-2 py-1 rounded-lg"
-                      >
-                        Promuovi
-                      </button>
-                    )}
-                    {m.stato === 'attivo' && (
-                      <button
-                        onClick={() => updateMember.mutate({ userId: m.user_id, patch: { stato: 'silenziato' } })}
-                        className="text-xs bg-white/10 text-white/60 px-2 py-1 rounded-lg"
-                      >
-                        Silenzia
-                      </button>
-                    )}
-                    <button
-                      onClick={() => updateMember.mutate({ userId: m.user_id, patch: { stato: 'bannato' } })}
-                      className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-lg"
-                    >
-                      Ban
-                    </button>
+            {members.map(m => {
+              const nome = m.profiles?.nome ?? m.user_id.slice(0, 8);
+              const avatar = m.profiles?.avatar_url;
+              return (
+                <div key={m.user_id} className="glass-panel rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-9 h-9 bg-hiko-muted rounded-full flex items-center justify-center text-xs text-white/60 overflow-hidden">
+                    {avatar
+                      ? <img src={avatar} alt={nome} className="w-full h-full object-cover" />
+                      : <span>{nome.slice(0, 2).toUpperCase()}</span>
+                    }
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{nome}</p>
+                    <p className="text-white/40 text-xs capitalize">{m.ruolo} · {m.stato}</p>
+                  </div>
+                  {role === 'admin' && m.ruolo !== 'admin' && (
+                    <div className="flex gap-1">
+                      {m.ruolo === 'membro' && (
+                        <button
+                          onClick={() => updateMember.mutate({ userId: m.user_id, patch: { ruolo: 'moderatore' } })}
+                          className="text-xs bg-hiko-primary/20 text-hiko-primary px-2 py-1 rounded-lg"
+                        >
+                          Promuovi
+                        </button>
+                      )}
+                      {m.stato === 'attivo' && (
+                        <button
+                          onClick={() => updateMember.mutate({ userId: m.user_id, patch: { stato: 'silenziato' } })}
+                          className="text-xs bg-white/10 text-white/60 px-2 py-1 rounded-lg"
+                        >
+                          Silenzia
+                        </button>
+                      )}
+                      <button
+                        onClick={() => updateMember.mutate({ userId: m.user_id, patch: { stato: 'bannato' } })}
+                        className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-lg"
+                      >
+                        Ban
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -169,7 +183,7 @@ export default function CommunityAdmin() {
             {joinRequests.map(req => (
               <div key={req.id} className="glass-panel rounded-xl p-3 flex items-center gap-3">
                 <div className="flex-1">
-                  <p className="text-white text-sm">{req.user_id.slice(0, 16)}...</p>
+                  <p className="text-white text-sm">{req.profiles?.nome ?? req.user_id.slice(0, 8)}</p>
                   <p className="text-white/40 text-xs">{new Date(req.created_at).toLocaleDateString('it')}</p>
                 </div>
                 <button onClick={() => approveRequest.mutate(req)} className="text-xs bg-hiko-primary/20 text-hiko-primary px-3 py-1.5 rounded-lg font-medium">Approva</button>
