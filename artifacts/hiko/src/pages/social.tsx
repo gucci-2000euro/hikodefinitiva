@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCommentsStore } from '@/store/useCommentsStore';
 import { useMessagesStore } from '@/store/useMessagesStore';
-import { Heart, MessageCircle, Plus, Users, MessageSquare, Search, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Plus, Users, MessageSquare, Search, Loader2, MoreHorizontal, Trash2, Lock } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { Logo } from '@/components/Logo';
@@ -48,7 +48,7 @@ export default function Social() {
       return (data ?? []) as PostRow[];
     },
     staleTime: 0,
-    enabled: tab === 'feed',
+    enabled: tab === 'feed' && !!user,
   });
 
   const { data: communities = [], isLoading: loadingCommunities } = useQuery<Community[]>({
@@ -59,7 +59,7 @@ export default function Social() {
       const { data } = await q.limit(30);
       return (data ?? []) as Community[];
     },
-    enabled: tab === 'community',
+    enabled: tab === 'community' && !!user,
     staleTime: 30_000,
   });
 
@@ -138,7 +138,13 @@ export default function Social() {
       {/* ── FEED ── */}
       {tab === 'feed' && (
         <div className="space-y-6 pt-4">
-          {loadingFeed ? (
+          {!user ? (
+            <div className="text-center py-16 text-white/40">
+              <Lock size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">Accedi per vedere il feed</p>
+              <p className="text-sm">Le corse condivise sono visibili solo ai membri.</p>
+            </div>
+          ) : loadingFeed ? (
             <div className="flex justify-center py-16"><Loader2 size={32} className="text-hiko-primary animate-spin" /></div>
           ) : posts.length === 0 ? (
             <div className="text-center py-16 text-white/40">
@@ -219,7 +225,13 @@ export default function Social() {
       {/* ── COMMUNITY ── */}
       {tab === 'community' && (
         <div className="px-4 pt-4">
-          {loadingCommunities ? (
+          {!user ? (
+            <div className="text-center py-16 text-white/40">
+              <Lock size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">Accedi per vedere le community</p>
+              <p className="text-sm">Le community sono visibili solo ai membri.</p>
+            </div>
+          ) : loadingCommunities ? (
             <div className="flex justify-center py-16"><Loader2 size={32} className="text-hiko-primary animate-spin" /></div>
           ) : communities.length === 0 ? (
             <div className="text-center py-16 text-white/40">
